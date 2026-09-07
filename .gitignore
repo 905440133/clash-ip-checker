@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Clsh Automator Specific
+*.yaml
+!config.yaml.example
+*_checked.yaml
+run.log
+*.map
+
+# VS Code
+.vscode/
+
+# Brain/Artifacts
+.gemini/
+.agent/
+brain/
