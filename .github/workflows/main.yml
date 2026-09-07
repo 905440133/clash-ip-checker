@@ -36,11 +36,9 @@ jobs:
           if [ -s config.yaml ]; then
             nohup clash -f config.yaml > clash.log 2>&1 &
             sleep 5
-            echo "HTTP_PROXY=http://127.0.0.1:7890" >> $GITHUB_ENV
-            echo "HTTPS_PROXY=http://127.0.0.1:7890" >> $GITHUB_ENV
-            echo "✅ 本地代理已成功启动！"
+            echo "✅ 本地代理已在后台启动！"
           else
-            echo "⚠️ 无法下载配置建立代理，将直接发起请求"
+            echo "⚠️ 无法下载配置，将使用直连请求"
           fi
 
       - name: Run IP Check
