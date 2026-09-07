@@ -1,10 +1,45 @@
 import os
 import sys
 import base64
-import urllib.request
 import urllib.parse
 import json
 import socket
+import subprocess
+
+def fetch_subscription(url):
+    # 自动清理链接前后的空格、换行符及引号
+    url = url.strip().strip("'").strip('"')
+    
+    # 模拟不同的客户端 User-Agent 依次尝试
+    user_agents = [
+        "Shadowrocket/2182 (iOS 17.5; iPhone15,2)",
+        "ClashforWindows/0.20.39",
+        "Clash.Meta",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    ]
+    
+    for ua in user_agents:
+        print(f"正在尝试以 [{ua.split('/')[0]}] 身份获取订阅...")
+        try:
+            cmd = [
+                "curl", "-sSL", "--max-time", "15",
+                "-H", f"User-Agent: {ua}",
+                "-H", "Accept: */*",
+                "-H", "Accept-Language: zh-CN,zh;q=0.9,en;q=0.8",
+                "-H", "Connection: keep-alive",
+                url
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
+            if result.returncode == 0 and result.stdout.strip():
+                content = result.stdout.strip()
+                # 简单校验返回内容是否包含节点或Base64字符
+                if "://" in content or len(content) > 30:
+                    print("✅ 成功下载订阅内容！")
+                    return content
+        except Exception as e:
+            print(f"尝试失败: {e}")
+
+    return None
 
 def decode_sub(content):
     content = content.strip()
@@ -97,12 +132,9 @@ def main():
         sys.exit(1)
 
     print("正在获取订阅节点...")
-    req = urllib.request.Request(sub_url, headers={'User-Agent': 'Shadowrocket/2.2.0'})
-    try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            raw_content = resp.read().decode('utf-8', errors='ignore')
-    except Exception as e:
-        print(f"下载订阅失败: {e}")
+    raw_content = fetch_subscription(sub_url)
+    if not raw_content:
+        print("错误：无法获取订阅，请检查 SUB_URL 链接是否正确，或确认机场订阅开关已开启。")
         sys.exit(1)
 
     lines = decode_sub(raw_content)
