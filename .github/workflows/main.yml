@@ -20,26 +20,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-
-      - name: Install Mihomo Core
-        run: |
-          wget -O mihomo.gz https://github.com/MetaCubeX/mihomo/releases/download/v1.18.7/mihomo-linux-amd64-v1.18.7.gz
-          gunzip mihomo.gz
-          chmod +x mihomo
-          sudo mv mihomo /usr/local/bin/clash
-
-      - name: Fetch Profile and Start Local Proxy
-        env:
-          SUB_URL: ${{ secrets.SUB_URL }}
-        run: |
-          curl -sSL -A "ClashforWindows/0.20.39" "${SUB_URL}" -o config.yaml || true
-          if [ -s config.yaml ]; then
-            nohup clash -f config.yaml > clash.log 2>&1 &
-            sleep 5
-            echo "✅ 本地代理已在后台启动！"
-          else
-            echo "⚠️ 无法下载配置，将使用直连请求"
-          fi
+          pip install curl_cffi
 
       - name: Run IP Check
         env:
