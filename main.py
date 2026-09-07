@@ -127,6 +127,12 @@ def main():
         sys.exit(1)
 
     raw_content = fetch_subscription(sub_url)
+    
+    # --- 新增的 3 行调试打印代码 ---
+    print("--- [调试信息] 花云返回的原始数据前 200 字 ---")
+    print(str(raw_content)[:200])
+    print("---------------------------------------------")
+
     if not raw_content:
         print("错误：无法获取订阅！")
         sys.exit(1)
@@ -145,7 +151,7 @@ def main():
     # 严格按照小火箭标准对 UTF-8 文本进行 Base64 编码
     result_b64 = base64.b64encode(result_raw.encode('utf-8')).decode('utf-8')
 
-    # 同时导出明文和 Base64，确保全平台兼容
+    # 同时导出明文和 Base64
     with open("sub.txt", "w", encoding="utf-8") as f:
         f.write(result_b64)
         
@@ -156,3 +162,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
