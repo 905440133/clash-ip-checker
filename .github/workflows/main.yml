@@ -1,12 +1,12 @@
 name: IP Check and Update
 
 on:
-  workflow_dispatch: # 允许在网页上手动点击触发
+  workflow_dispatch:
   schedule:
-    - cron: '0 19 * * *' # 每天北京时间凌晨 03:00 自动运行一次
+    - cron: '0 0 * * *'
 
 jobs:
-  check:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -15,12 +15,34 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.x'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Install Clash Core
+        run: |
+          wget -O clash.gz https://github.com/Dreamacro/clash/releases/download/v1.18.0/clash-linux-amd64-v1.18.0.gz
+          gunzip clash.gz
+          chmod +x clash
+          sudo mv clash /usr/local/bin/
+
+      - name: Fetch Profile and Start Local Proxy
+        env:
+          SUB_URL: ${{ secrets.SUB_URL }}
+        run: |
+          # 尝试下载原始配置建立代理通道
+          curl -sSL -A "ClashforWindows/0.20.39" "${SUB_URL}" -o config.yaml || true
+          if [ -s config.yaml ]; then
+            nohup clash -f config.yaml > clash.log 2>&1 &
+            sleep 5
+            echo "HTTP_PROXY=http://127.0.0.1:7890" >> $GITHUB_ENV
+            echo "HTTPS_PROXY=http://127.0.0.1:7890" >> $GITHUB_ENV
+            echo "✅ 本地代理已成功启动！"
+          else
+            echo "⚠️ 无法下载配置建立代理，将直接发起请求"
+          fi
 
       - name: Run IP Check
         env:
@@ -33,3 +55,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./
+          publish_branch: gh-pages
