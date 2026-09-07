@@ -21,18 +21,17 @@ jobs:
         run: |
           python -m pip install --upgrade pip
 
-      - name: Install Clash Core
+      - name: Install Mihomo Core
         run: |
-          wget -O clash.gz https://github.com/Dreamacro/clash/releases/download/v1.18.0/clash-linux-amd64-v1.18.0.gz
-          gunzip clash.gz
-          chmod +x clash
-          sudo mv clash /usr/local/bin/
+          wget -O mihomo.gz https://github.com/MetaCubeX/mihomo/releases/download/v1.18.7/mihomo-linux-amd64-v1.18.7.gz
+          gunzip mihomo.gz
+          chmod +x mihomo
+          sudo mv mihomo /usr/local/bin/clash
 
       - name: Fetch Profile and Start Local Proxy
         env:
           SUB_URL: ${{ secrets.SUB_URL }}
         run: |
-          # 尝试下载原始配置建立代理通道
           curl -sSL -A "ClashforWindows/0.20.39" "${SUB_URL}" -o config.yaml || true
           if [ -s config.yaml ]; then
             nohup clash -f config.yaml > clash.log 2>&1 &
