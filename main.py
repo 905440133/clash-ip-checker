@@ -4,7 +4,7 @@ import base64
 import urllib.parse
 import json
 import socket
-import subprocess
+from curl_cffi import requests # 引入强力突破 Cloudflare 的指纹伪装库
 
 def fetch_subscription(url):
     url = url.strip().strip("'").strip('"')
@@ -15,45 +15,25 @@ def fetch_subscription(url):
         
     print(f"实际请求的订阅链接: {url}")
     
-    user_agents = [
-        "Shadowrocket/2182 (iOS 17.5; iPhone15,2)",
-        "Shadowrocket/v2.2.30",
-        "Quantumult%20X/1.0.30"
-    ]
-    
-    for ua in user_agents:
-        print(f"尝试使用 User-Agent 获取订阅: {ua}")
-        try:
-            # 优先尝试通过本地 Mihomo 代理 (127.0.0.1:7890) 请求
-            cmd = [
-                "curl", "-sSL", "--max-time", "15",
-                "-x", "http://127.0.0.1:7890",
-                "-H", f"User-Agent: {ua}",
-                "-H", "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                "-H", "Accept-Language: zh-CN,zh-Hans;q=0.9",
-                url
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
-            
-            # 如果代理没响应，退回到直连
-            if result.returncode != 0 or not result.stdout.strip():
-                cmd_direct = [
-                    "curl", "-sSL", "--max-time", "15",
-                    "-H", f"User-Agent: {ua}",
-                    "-H", "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                    url
-                ]
-                result = subprocess.run(cmd_direct, capture_output=True, text=True, timeout=20)
-
-            if result.returncode == 0 and result.stdout.strip():
-                content = result.stdout.strip()
-                if "<title>403" not in content and "<html>" not in content.lower():
-                    print("✅ 成功绕过防火墙，获取到真实的节点订阅数据！")
-                    return content
-                else:
-                    print("⚠️ 仍被花云拦截，返回了 HTML 报错页")
-        except Exception as e:
-            print(f"curl 尝试失败: {e}")
+    try:
+        print("正在伪装成真实 Chrome 浏览器底层指纹发起请求...")
+        headers = {
+            "User-Agent": "Shadowrocket/2182 (iOS 17.5; iPhone15,2)",
+            "Accept": "*/*",
+            "Accept-Language": "zh-CN,zh-Hans;q=0.9"
+        }
+        # impersonate="chrome110" 会完美伪装真实浏览器的 TLS 特征
+        response = requests.get(url, headers=headers, impersonate="chrome110", timeout=15)
+        
+        content = response.text.strip()
+        if "<title>403" not in content and "<html>" not in content.lower() and content:
+            print("✅ 成功穿透 Cloudflare 防火墙，获取到真实的节点数据！")
+            return content
+        else:
+            print("⚠️ 仍被拦截，返回内容前 200 字:")
+            print(content[:200])
+    except Exception as e:
+        print(f"❌ 请求失败: {e}")
             
     return None
 
@@ -149,10 +129,6 @@ def main():
 
     raw_content = fetch_subscription(sub_url)
     
-    print("--- [调试信息] 花云返回的原始数据前 200 字 ---")
-    print(str(raw_content)[:200])
-    print("---------------------------------------------")
-
     if not raw_content:
         print("错误：无法获取订阅！")
         sys.exit(1)
