@@ -9,11 +9,17 @@ import subprocess
 def fetch_subscription(url):
     url = url.strip().strip("'").strip('"')
     
-    # 模拟真实小火箭/Clash客户端请求头，防403
+    # 自动补上小火箭标识参数以绕过花云的 403 拦截
+    if "flag=" not in url:
+        connector = "&" if "?" in url else "?"
+        url = f"{url}{connector}flag=shadowrocket"
+        
+    print(f"实际请求的订阅链接: {url}")
+    
     user_agents = [
         "Shadowrocket/2182 (iOS 17.5; iPhone15,2)",
-        "ClashforWindows/0.20.39",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        "Shadowrocket/v2.2.30",
+        "Quantumult%20X/1.0.30"
     ]
     
     for ua in user_agents:
@@ -22,15 +28,18 @@ def fetch_subscription(url):
             cmd = [
                 "curl", "-sSL", "--max-time", "15",
                 "-H", f"User-Agent: {ua}",
-                "-H", "Accept: */*",
+                "-H", "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "-H", "Accept-Language: zh-CN,zh-Hans;q=0.9",
                 url
             ]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
             if result.returncode == 0 and result.stdout.strip():
                 content = result.stdout.strip()
-                if "://" in content or len(content) > 20:
-                    print("✅ 成功通过 curl 获取到订阅数据！")
+                if "<title>403" not in content and "<html>" not in content.lower():
+                    print("✅ 成功绕过防火墙，获取到真实的节点订阅数据！")
                     return content
+                else:
+                    print("⚠️ 仍被花云拦截，返回了 HTML 报错页")
         except Exception as e:
             print(f"curl 尝试失败: {e}")
             
@@ -128,7 +137,6 @@ def main():
 
     raw_content = fetch_subscription(sub_url)
     
-    # --- 新增的 3 行调试打印代码 ---
     print("--- [调试信息] 花云返回的原始数据前 200 字 ---")
     print(str(raw_content)[:200])
     print("---------------------------------------------")
@@ -145,13 +153,9 @@ def main():
         if line.strip():
             new_lines.append(process_line(line))
 
-    # 生成标准的明文节点按行分隔
     result_raw = "\n".join(new_lines)
-    
-    # 严格按照小火箭标准对 UTF-8 文本进行 Base64 编码
     result_b64 = base64.b64encode(result_raw.encode('utf-8')).decode('utf-8')
 
-    # 同时导出明文和 Base64
     with open("sub.txt", "w", encoding="utf-8") as f:
         f.write(result_b64)
         
@@ -162,4 +166,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
