@@ -9,7 +9,6 @@ import subprocess
 def fetch_subscription(url):
     url = url.strip().strip("'").strip('"')
     
-    # 自动补上小火箭标识参数以绕过花云的 403 拦截
     if "flag=" not in url:
         connector = "&" if "?" in url else "?"
         url = f"{url}{connector}flag=shadowrocket"
@@ -25,14 +24,27 @@ def fetch_subscription(url):
     for ua in user_agents:
         print(f"尝试使用 User-Agent 获取订阅: {ua}")
         try:
+            # 优先尝试通过本地 Mihomo 代理 (127.0.0.1:7890) 请求
             cmd = [
                 "curl", "-sSL", "--max-time", "15",
+                "-x", "http://127.0.0.1:7890",
                 "-H", f"User-Agent: {ua}",
                 "-H", "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                 "-H", "Accept-Language: zh-CN,zh-Hans;q=0.9",
                 url
             ]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
+            
+            # 如果代理没响应，退回到直连
+            if result.returncode != 0 or not result.stdout.strip():
+                cmd_direct = [
+                    "curl", "-sSL", "--max-time", "15",
+                    "-H", f"User-Agent: {ua}",
+                    "-H", "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    url
+                ]
+                result = subprocess.run(cmd_direct, capture_output=True, text=True, timeout=20)
+
             if result.returncode == 0 and result.stdout.strip():
                 content = result.stdout.strip()
                 if "<title>403" not in content and "<html>" not in content.lower():
